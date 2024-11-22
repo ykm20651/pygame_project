@@ -68,6 +68,7 @@ class Ball(Basic):
     def collide_block(self, blocks: list):
         # ============================================
         # TODO: Implement an event when the ball hits a block
+        # commit
         pass
 
     def collide_paddle(self, paddle: Paddle) -> None:
