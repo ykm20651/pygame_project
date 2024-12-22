@@ -44,6 +44,7 @@ def tick():
     global paddle
     global ball1
     global start
+    global ITEMS
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -55,6 +56,11 @@ def tick():
             if event.key == K_SPACE:  # space키가 눌려지만 start 변수가 True로 바뀌며 게임 시작
                 start = True
             paddle.move_paddle(event)
+    
+    for item in ITEMS[:]:  
+        item.move()  
+        if item.rect.top > config.display_dimension[1]:  
+            ITEMS.remove(item)
 
     for ball in BALLS:
         if start:
@@ -78,6 +84,7 @@ def main():
     global paddle
     global ball1
     global start
+    global ITEMS
     my_font = pygame.font.SysFont(None, 50)
     mess_clear = my_font.render("Cleared!", True, config.colors[2])
     mess_over = my_font.render("Game Over!", True, config.colors[2])
@@ -90,6 +97,8 @@ def main():
 
         for block in BLOCKS:
             block.draw(surface)
+        for item in ITEMS:  
+            item.draw(surface)
 
         cur_score = config.num_blocks[0] * config.num_blocks[1] - len(BLOCKS)
 
