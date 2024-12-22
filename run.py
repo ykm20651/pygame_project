@@ -79,7 +79,6 @@ def tick():
 def main():
     global life
     global BLOCKS
-    global ITEMS
     global BALLS
     global paddle
     global ball1
