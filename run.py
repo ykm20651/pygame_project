@@ -1,14 +1,13 @@
 import sys
 from implements import BasicObject, BlockObject, PaddleObject, BallObject, ItemObject, create_item, item_list
 import config
-
 import pygame
 from pygame.locals import QUIT, Rect, K_ESCAPE, K_SPACE
 import random
 
 pygame.init()
 pygame.key.set_repeat(3, 3)
-surface = pygame.display.set_mode(config.display_dimension)
+surface = pygame.display.set_mode(config.screen_dimensions)
 
 fps_clock = pygame.time.Clock()
 
@@ -17,20 +16,20 @@ ball1 = BallObject()
 blocks = []
 items = []
 balls = [ball1]
-life = config.life
+life = config.total_lives
 start = False
 
 def create_blocks():
-    for i in range(config.num_blocks[0]):
-        for j in range(config.num_blocks[1]):
-            x = config.margin[0] + i * (config.block_size[0] + config.spacing[0])
+    for i in range(config.block_count[0]):
+        for j in range(config.block_count[1]):
+            x = config.margin_size[0] + i * (config.block_dimensions[0] + config.block_spacing[0])
             y = (
-                config.margin[1]
+                config.margin_size[1]
                 + config.scoreboard_height
-                + j * (config.block_size[1] + config.spacing[1])
+                + j * (config.block_dimensions[1] + config.block_spacing[1])
             )
-            color_index = j % len(config.colors)
-            color = config.colors[color_index]
+            color_index = j % len(config.item_colors)
+            color = config.item_colors[color_index]
             block = BlockObject(color, (x, y))
             blocks.append(block)
 
@@ -42,6 +41,7 @@ def tick():
     global paddle
     global ball1
     global start
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -73,6 +73,14 @@ def tick():
         if not item.alive():
             item_list.remove(item)
 
+        # 패들과 아이템 충돌 체크
+        if paddle.collide_item(item):
+            if item.color == config.red_item_color:
+                # 빨간색 아이템을 먹었을 때 추가 공 생성
+                new_ball = BallObject((paddle.rect.centerx, paddle.rect.top - 20))  # 패들 위에서 발사
+                balls.append(new_ball)  # 추가 공을 balls 리스트에 추가
+            item_list.remove(item)  # 아이템 제거
+
 def main():
     global life
     global blocks
@@ -82,8 +90,8 @@ def main():
     global ball1
     global start
     my_font = pygame.font.SysFont(None, 50)
-    mess_clear = my_font.render("Cleared!", True, config.colors[2])
-    mess_over = my_font.render("Game Over!", True, config.colors[2])
+    mess_clear = my_font.render("Cleared!", True, config.item_colors[2])
+    mess_over = my_font.render("Game Over!", True, config.item_colors[2])
     create_blocks()
 
     while True:
@@ -94,13 +102,13 @@ def main():
         for block in blocks:
             block.draw(surface)
 
-        cur_score = config.num_blocks[0] * config.num_blocks[1] - len(blocks)
+        cur_score = config.block_count[0] * config.block_count[1] - len(blocks)
 
-        score_txt = my_font.render(f"Score : {cur_score * 10}", True, config.colors[2])
-        life_font = my_font.render(f"Life: {life}", True, config.colors[0])
+        score_txt = my_font.render(f"Score : {cur_score * 10}", True, config.item_colors[2])
+        life_font = my_font.render(f"Life: {life}", True, config.item_colors[0])
 
-        surface.blit(score_txt, config.score_pos)
-        surface.blit(life_font, config.life_pos)
+        surface.blit(score_txt, config.score_position)
+        surface.blit(life_font, config.life_position)
 
         if len(balls) == 0:
             if life > 1:
@@ -125,7 +133,7 @@ def main():
             item.draw(surface)
 
         pygame.display.update()
-        fps_clock.tick(config.fps)
+        fps_clock.tick(config.frames_per_second)
 
 if __name__ == "__main__":
     main()
