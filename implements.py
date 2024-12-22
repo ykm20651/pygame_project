@@ -7,16 +7,6 @@ import config
 import pygame
 from pygame.locals import Rect, K_LEFT, K_RIGHT
 
-class Item(Basic):
-    def __init__(self, color, pos):
-        super().__init__(color, 2, pos, config.item_size) 
-        self.effect = None  
-    
-    def draw(self, surface):
-        pygame.draw.ellipse(surface, self.color, self.rect)
-
-    def move(self):
-        self.rect.move_ip(0, self.speed)
 
 class Basic:
     def __init__(self, color: tuple, speed: int = 0, pos: tuple = (0, 0), size: tuple = (0, 0)):
@@ -33,6 +23,16 @@ class Basic:
         self.rect.move_ip(dx, dy)
         self.center = (self.rect.centerx, self.rect.centery)
 
+class Item(Basic):
+    def __init__(self, color, pos):
+        super().__init__(color, 2, pos, config.item_size) 
+        self.effect = None  
+    
+    def draw(self, surface):
+        pygame.draw.ellipse(surface, self.color, self.rect)
+
+    def move(self):
+        self.rect.move_ip(0, self.speed)
 
 class Block(Basic):
     def __init__(self, color: tuple, pos: tuple = (0,0), alive = True):
