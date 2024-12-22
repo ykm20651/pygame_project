@@ -51,8 +51,9 @@ paddle_extension_ratio = 2
 paddle_extension_duration = 5
 paddle_extension_color = (0, 126, 255)
 
-red_item_color = (255, 0, 0)  
-blue_item_color = (0, 0, 255)  
+# 아이템 색상 추가
+red_item_color = (255, 0, 0)  # 빨간색 아이템
+blue_item_color = (0, 0, 255)  # 파란색 아이템
 
 item_colors = [(255, 0, 0), (255, 165, 0), (255, 255, 0)]
 collision_threshold = len(item_colors) - 1
