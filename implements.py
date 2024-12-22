@@ -1,9 +1,7 @@
 import math
 import random
 import time
-
 import config
-
 import pygame
 from pygame.locals import Rect, K_LEFT, K_RIGHT
 
@@ -27,7 +25,7 @@ class BasicObject:
 
 class BlockObject(BasicObject):
     def __init__(self, color: tuple, position: tuple = (0, 0), alive=True):
-        super().__init__(color, 0, position, config.block_size)
+        super().__init__(color, 0, position, config.block_dimensions)
         self.position = position
         self.alive = alive
 
@@ -39,10 +37,10 @@ class BlockObject(BasicObject):
 
 class PaddleObject(BasicObject):
     def __init__(self):
-        super().__init__(config.paddle_color, 0, config.paddle_pos, config.paddle_size)
-        self.start_pos = config.paddle_pos
-        self.speed = config.paddle_speed
-        self.cur_size = config.paddle_size
+        super().__init__(config.paddle_color, 0, config.paddle_position, config.paddle_dimensions)
+        self.start_pos = config.paddle_position
+        self.speed = config.paddle_movement_speed
+        self.cur_size = config.paddle_dimensions
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
@@ -50,12 +48,18 @@ class PaddleObject(BasicObject):
     def move_paddle(self, event: pygame.event.Event):
         if event.key == K_LEFT and self.rect.left > 0:
             self.rect.move_ip(-self.speed, 0)
-        elif event.key == K_RIGHT and self.rect.right < config.display_dimension[0]:
+        elif event.key == K_RIGHT and self.rect.right < config.screen_dimensions[0]:
             self.rect.move_ip(self.speed, 0)
 
+    def collide_item(self, item):
+        if self.rect.colliderect(item.rect):
+            if item.color == config.red_item_color:  # 빨간색 아이템일 때
+                return True
+        return False
+
 class BallObject(BasicObject):
-    def __init__(self, position: tuple = config.ball_pos):
-        super().__init__(config.ball_color, config.ball_speed, position, config.ball_size)
+    def __init__(self, position: tuple = config.ball_position):
+        super().__init__(config.ball_color, config.ball_movement_speed, position, config.ball_dimensions)
         self.power = 1
         self.direction = 90 + random.randint(-45, 45)
 
@@ -76,23 +80,23 @@ class BallObject(BasicObject):
             self.direction = 360 - self.direction + random.randint(-5, 5)
 
     def hit_wall(self):
-        if self.rect.left <= 0 or self.rect.right >= config.display_dimension[0]:
+        if self.rect.left <= 0 or self.rect.right >= config.screen_dimensions[0]:
             self.direction = 180 - self.direction
         
         if self.rect.top <= 0:
             self.direction = -self.direction
     
     def alive(self):
-        return self.rect.top < config.display_dimension[1]
+        return self.rect.top < config.screen_dimensions[1]
 
 class ItemObject(BasicObject):
     def __init__(self, color: tuple, position: tuple = (0, 0)):
-        super().__init__(color, config.item_speed, position, config.item_size)
+        super().__init__(color, config.item_movement_speed, position, config.item_dimensions)
         self.alive_status = True  # 상태를 나타내는 속성으로 변경
 
     def move(self):
         self.rect.move_ip(0, self.speed)
-        if self.rect.top > config.display_dimension[1]:
+        if self.rect.top > config.screen_dimensions[1]:
             self.alive_status = False
 
     def draw(self, surface):
@@ -102,7 +106,7 @@ class ItemObject(BasicObject):
         return self.alive_status  # alive_status 반환
 
 def create_item(position):
-    if random.random() < 0.2:
+    if random.random() < 0.2:  # 20% 확률
         item_color = random.choice([config.red_item_color, config.blue_item_color])
         item = ItemObject(item_color, position)
         item_list.append(item)  # 아이템 리스트에 추가
