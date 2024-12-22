@@ -1,119 +1,139 @@
-import math
-import random
-import time
-
+import sys
+from implements import BasicObject, BlockObject, PaddleObject, BallObject, ItemObject, create_item, item_list
 import config
-
 import pygame
-from pygame.locals import Rect, K_LEFT, K_RIGHT
+from pygame.locals import QUIT, Rect, K_ESCAPE, K_SPACE
+import random
 
+pygame.init()
+pygame.key.set_repeat(3, 3)
+surface = pygame.display.set_mode(config.screen_dimensions)
 
-class Basic:
-    def __init__(self, color: tuple, speed: int = 0, pos: tuple = (0, 0), size: tuple = (0, 0)):
-        self.color = color
-        self.rect = Rect(pos[0], pos[1], size[0], size[1])
-        self.center = (self.rect.centerx, self.rect.centery)
-        self.speed = speed
-        self.start_time = time.time()
-        self.dir = 270
+fps_clock = pygame.time.Clock()
 
-    def move(self):
-        dx = math.cos(math.radians(self.dir)) * self.speed
-        dy = -math.sin(math.radians(self.dir)) * self.speed
-        self.rect.move_ip(dx, dy)
-        self.center = (self.rect.centerx, self.rect.centery)
+paddle = PaddleObject()
+ball1 = BallObject()
+blocks = []
+items = []
+balls = [ball1]
+life = config.total_lives
+start = False
 
+def create_blocks():
+    for i in range(config.block_count[0]):
+        for j in range(config.block_count[1]):
+            x = config.margin_size[0] + i * (config.block_dimensions[0] + config.block_spacing[0])
+            y = (
+                config.margin_size[1]
+                + config.scoreboard_height
+                + j * (config.block_dimensions[1] + config.block_spacing[1])
+            )
+            color_index = j % len(config.item_colors)
+            color = config.item_colors[color_index]
+            block = BlockObject(color, (x, y))
+            blocks.append(block)
 
-class Block(Basic):
-    def __init__(self, color: tuple, pos: tuple = (0,0), alive = True):
-        super().__init__(color, 0, pos, config.block_size)
-        self.pos = pos
-        self.alive = alive
+def tick():
+    global life
+    global blocks
+    global items
+    global balls
+    global paddle
+    global ball1
+    global start
 
-    def draw(self, surface) -> None:
-        if self.alive:
-            pygame.draw.rect(surface, self.color, self.rect)
-    
-    def collide(self):
-        # ============================================
-        # TODO: Implement an event when block collides with a ball
-        self.alive = False
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == K_ESCAPE:  # ESC 키가 눌렸을 때
+                pygame.quit()
+                sys.exit()
+            if event.key == K_SPACE:  # space키가 눌리면 start 변수가 True로 바뀌며 게임 시작
+                start = True
+            paddle.move_paddle(event)
 
+    for ball in balls:
+        if start:
+            ball.move()
+        else:
+            ball.rect.centerx = paddle.rect.centerx
+            ball.rect.bottom = paddle.rect.top
 
-class Paddle(Basic):
-    def __init__(self):
-        super().__init__(config.paddle_color, 0, config.paddle_pos, config.paddle_size)
-        self.start_pos = config.paddle_pos
-        self.speed = config.paddle_speed
-        self.cur_size = config.paddle_size
+        ball.collide_block(blocks)
+        ball.collide_paddle(paddle)
+        ball.hit_wall()
+        if not ball.alive():
+            balls.remove(ball)
 
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect)
+    # 아이템 업데이트
+    for item in item_list:  # item_list에서 아이템 업데이트
+        item.move()
+        if not item.alive():
+            item_list.remove(item)
 
-    def move_paddle(self, event: pygame.event.Event):
-        if event.key == K_LEFT and self.rect.left > 0:
-            self.rect.move_ip(-self.speed, 0)
-        elif event.key == K_RIGHT and self.rect.right < config.display_dimension[0]:
-            self.rect.move_ip(self.speed, 0)
+        # 패들과 아이템 충돌 체크
+        if paddle.collide_item(item):
+            if item.color == config.red_item_color:
+                # 빨간색 아이템을 먹었을 때 추가 공 생성
+                new_ball = BallObject((paddle.rect.centerx, paddle.rect.top - 20))  # 패들 위에서 발사
+                balls.append(new_ball)  # 추가 공을 balls 리스트에 추가
+            item_list.remove(item)  # 아이템 제거
 
+def main():
+    global life
+    global blocks
+    global items
+    global balls
+    global paddle
+    global ball1
+    global start
+    my_font = pygame.font.SysFont(None, 50)
+    mess_clear = my_font.render("Cleared!", True, config.item_colors[2])
+    mess_over = my_font.render("Game Over!", True, config.item_colors[2])
+    create_blocks()
 
-class Ball(Basic):
-    def __init__(self, pos: tuple = config.ball_pos):
-        super().__init__(config.ball_color, config.ball_speed, pos, config.ball_size)
-        self.power = 1
-        self.dir = 90 + random.randint(-45, 45)
+    while True:
+        tick()
+        surface.fill((0, 0, 0))
+        paddle.draw(surface)
 
-    def draw(self, surface):
-        pygame.draw.ellipse(surface, self.color, self.rect)
-
-    def collide_block(self, blocks: list):
-        # ============================================
-        # TODO: Implement an event when the ball hits a block
-        closest_block = None
-        closest_distance = float('inf')  # 초기 거리 값 무한대
-        prev_x, prev_y = self.rect.centerx, self.rect.centery  # 공의 이전 위치 저장
-
-        # 가장 가까운 충돌 블록 탐색
         for block in blocks:
-            if block.alive:
-                # 공 이동 경로와 블록의 충돌 확인
-                if block.rect.clipline((prev_x, prev_y), (self.rect.centerx, self.rect.centery)):
-                    # 거리 계산
-                    distance = math.hypot(
-                        prev_x - block.rect.centerx,
-                        prev_y - block.rect.centery
-                    )
-                    if distance < closest_distance:
-                        closest_block = block
-                        closest_distance = distance
+            block.draw(surface)
 
-        # 가장 가까운 블록 처리
-        if closest_block:
-            closest_block.collide()  # 블록 상태 업데이트
+        cur_score = config.block_count[0] * config.block_count[1] - len(blocks)
 
-            # 반사 처리: 단순히 현재 진행 방향의 반대로 변경
-            self.dir = (self.dir + 180) % 360
+        score_txt = my_font.render(f"Score : {cur_score * 10}", True, config.item_colors[2])
+        life_font = my_font.render(f"Life: {life}", True, config.item_colors[0])
 
+        surface.blit(score_txt, config.score_position)
+        surface.blit(life_font, config.life_position)
 
-    def collide_paddle(self, paddle: Paddle) -> None:
-        if self.rect.colliderect(paddle.rect):
-            self.dir = 360 - self.dir + random.randint(-5, 5)
+        if len(balls) == 0:
+            if life > 1:
+                life -= 1
+                ball1 = BallObject()
+                balls = [ball1]
+                start = False
+            else:
+                surface.blit(mess_over, (200, 300))
+        elif all(block.alive == False for block in blocks):
+            surface.blit(mess_clear, (200, 400))
+        else:
+            for ball in balls:
+                if start:
+                    ball.move()
+                ball.draw(surface)
+            for block in blocks:
+                block.draw(surface)
 
-    def hit_wall(self):
-        # ============================================
-        # TODO: Implement a service that bounces off when the ball hits the wall
-        # 좌우 벽 충돌
-        if self.rect.left <= 0 or self.rect.right >= config.display_dimension[0]:
-            self.dir = 180 - self.dir  # x축 반사
-        # 상단 벽 충돌
-        if self.rect.top <= 0:
-            self.dir = -self.dir  # y축 반사
-    
-    def alive(self):
-        # ============================================
-        # TODO: Implement a service that returns whether the ball is alive or not
-        # 공이 화면 아래로 떨어졌는지 확인
-        if self.rect.top >= config.display_dimension[1]:
-            return False  # 공이 사라짐
-        return True  # 공이 화면 안에 있음
-            
+        # 아이템 그리기
+        for item in item_list:  # item_list에서 아이템 그리기
+            item.draw(surface)
+
+        pygame.display.update()
+        fps_clock.tick(config.frames_per_second)
+
+if __name__ == "__main__":
+    main()
