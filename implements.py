@@ -7,6 +7,16 @@ import config
 import pygame
 from pygame.locals import Rect, K_LEFT, K_RIGHT
 
+class Item(Basic):
+    def __init__(self, color, pos):
+        super().__init__(color, 2, pos, config.item_size)  
+        self.effect = None
+    
+    def draw(self, surface):
+        pygame.draw.ellipse(surface, self.color, self.rect)
+
+    def move(self):
+        self.rect.move_ip(0, self.speed)
 
 class Basic:
     def __init__(self, color: tuple, speed: int = 0, pos: tuple = (0, 0), size: tuple = (0, 0)):
@@ -35,10 +45,11 @@ class Block(Basic):
             pygame.draw.rect(surface, self.color, self.rect)
     
     def collide(self):
-        # ============================================
-        # TODO: Implement an event when block collides with a ball
         self.alive = False
-
+        if random.random() < 0.2:  
+            item_color = random.choice([(255, 0, 0), (0, 0, 255)]) 
+            new_item = Item(item_color, (self.rect.centerx, self.rect.centery))
+            ITEMS.append(new_item)  
 
 class Paddle(Basic):
     def __init__(self):
