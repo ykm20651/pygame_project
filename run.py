@@ -44,7 +44,6 @@ def tick():
     global paddle
     global ball1
     global start
-    global ITEMS
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
